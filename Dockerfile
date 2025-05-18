@@ -47,3 +47,4 @@ RUN for repo in \
 
 EXPOSE 8188
 CMD [ "python3", "/ComfyUI/main.py", "--listen" ]
+

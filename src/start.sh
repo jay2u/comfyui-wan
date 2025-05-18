@@ -4,28 +4,20 @@
 TCMALLOC="$(ldconfig -p | grep -Po "libtcmalloc.so.\d" | head -n 1)"
 export LD_PRELOAD="${TCMALLOC}"
 
-# This is in case there's any special installs or overrides that needs to occur when starting the machine before starting ComfyUI
-if [ -f "/workspace/additional_params.sh" ]; then
-    chmod +x /workspace/additional_params.sh
-    echo "Executing additional_params.sh..."
-    /workspace/additional_params.sh
-else
-    echo "additional_params.sh not found in /workspace. Skipping..."
-fi
-
 # Set the network volume path
 NETWORK_VOLUME="/workspace"
-
-# Check if NETWORK_VOLUME exists; if not, use root directory instead
 if [ ! -d "$NETWORK_VOLUME" ]; then
-    echo "NETWORK_VOLUME directory '$NETWORK_VOLUME' does not exist. You are NOT using a network volume. Setting NETWORK_VOLUME to '/' (root directory)."
-    NETWORK_VOLUME="/"
-    echo "NETWORK_VOLUME directory doesn't exist. Starting JupyterLab on root directory..."
-    jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=/ &
+  NETWORK_VOLUME=""
+  NOTEBOOK_DIR="/"
+  echo "NOT USING NETWORK_VOLUME"
 else
-    echo "NETWORK_VOLUME directory exists. Starting JupyterLab..."
-    jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=/workspace &
+  echo "USING NETWORK_VOLUME: $NETWORK_VOLUME"
+  NOTEBOOK_DIR=$NETWORK_VOLUME
 fi
+
+NETWORK_VOLUME=""
+
+jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=$NOTEBOOK_DIR &
 
 COMFYUI_DIR="$NETWORK_VOLUME/ComfyUI"
 WORKFLOW_DIR="$NETWORK_VOLUME/ComfyUI/user/default/workflows"
@@ -47,9 +39,7 @@ rm -rf CivitAI_Downloader  # Clean up the cloned repo
 pip install huggingface_hub
 pip install onnxruntime-gpu
 
-
-
-if [ "$enable_optimizations" == "true" ]; then
+if [ "$ENABLE_OPTIMIZATIONS" == "true" ]; then
 echo "Downloading SageAttention"
 git clone https://github.com/thu-ml/SageAttention.git
 cd SageAttention
@@ -76,7 +66,9 @@ download_model() {
     echo "Downloading $destination_file..."
 
     # First, download to a temporary directory
-    local temp_dir=$(mktemp -d)
+    mkdir -p $NETWORK_VOLUME/tmp
+    local temp_dir="$NETWORK_VOLUME/tmp"
+
     huggingface-cli download "$repo_id" "$file_path" --local-dir "$temp_dir" --resume-download
 
     # Find the downloaded file in the temp directory (may be in subdirectories)
@@ -104,7 +96,7 @@ CLIP_VISION_DIR="$NETWORK_VOLUME/ComfyUI/models/clip_vision"
 VAE_DIR="$NETWORK_VOLUME/ComfyUI/models/vae"
 
 # Download quantized models
-if [ "$download_quantized_model" == "true" ]; then
+if [ "$DOWNLOAD_QUANTIZED_MODEL" == "true" ]; then
   echo "Downloading quantized models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "Wan2_1-T2V-14B_fp8_e4m3fn.safetensors" \
@@ -118,7 +110,7 @@ if [ "$download_quantized_model" == "true" ]; then
 fi
 
 # Download 480p native models
-if [ "$download_480p_native_models" == "true" ]; then
+if [ "$DOWNLOAD_480P_NATIVE_MODELS" == "true" ]; then
   echo "Downloading 480p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_480p_14B_bf16.safetensors" \
@@ -132,7 +124,7 @@ if [ "$download_480p_native_models" == "true" ]; then
 fi
 
 # Handle full download (with SDXL)
-if [ "$download_wan_fun_and_sdxl_helper" == "true" ]; then
+if [ "$DOWNLOAD_WAN_FUN_AND_SDXL_HELPER" == "true" ]; then
   echo "Downloading Wan Fun 1.3B Model"
 
   download_model "$DIFFUSION_MODELS_DIR" "Wan2.1-Fun-Control1.3B.safetensors" \
@@ -151,7 +143,7 @@ if [ "$download_wan_fun_and_sdxl_helper" == "true" ]; then
   fi
 fi
 
-if [ "$download_vace" == "true" ]; then
+if [ "$DOWNLOAD_VACE" == "true" ]; then
   echo "Downloading Wan 1.3B"
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_t2v_1.3B_fp16.safetensors" \
@@ -169,7 +161,7 @@ if [ "$download_vace" == "true" ]; then
 fi
 
 # Download 720p native models
-if [ "$download_720p_native_models" == "true" ]; then
+if [ "$DOWNLOAD_720P_NATIVE_MODELS" == "true" ]; then
   echo "Downloading 720p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_720p_14B_bf16.safetensors" \
@@ -183,7 +175,7 @@ if [ "$download_720p_native_models" == "true" ]; then
 fi
 
 # Download 480p native models
-if [ "$download_480p_debug" == "true" ]; then
+if [ "$DOWNLOAD_480P_DEBUG" == "true" ]; then
   echo "Downloading 480p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_480p_14B_bf16.safetensors" \
@@ -297,7 +289,7 @@ for TARGET_DIR in "${!MODEL_CATEGORIES[@]}"; do
     done
 done
 
-if [ "$change_preview_method" == "true" ]; then
+if [ "$CHANGE_PREVIEW_METHOD" == "true" ]; then
     echo "Updating default preview method..."
     sed -i '/id: *'"'"'VHS.LatentPreview'"'"'/,/defaultValue:/s/defaultValue: false/defaultValue: true/' $NETWORK_VOLUME/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/web/js/VHS.core.js
     CONFIG_PATH="/ComfyUI/user/default/ComfyUI-Manager"
@@ -365,7 +357,7 @@ pip install --no-cache-dir -r $NETWORK_VOLUME/ComfyUI/custom_nodes/ComfyUI-KJNod
 
 # Start ComfyUI
 echo "Starting ComfyUI"
-if [ "$enable_optimizations" = "false" ]; then
+if [ ! "$ENABLE_OPTIMIZATIONS" = "true" ]; then
     python3 "$NETWORK_VOLUME/ComfyUI/main.py" --listen
 else
     python3 "$NETWORK_VOLUME/ComfyUI/main.py" --listen --use-sage-attention
