@@ -15,8 +15,6 @@ else
   NOTEBOOK_DIR=$NETWORK_VOLUME
 fi
 
-NETWORK_VOLUME=""
-
 jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=$NOTEBOOK_DIR &
 
 COMFYUI_DIR="$NETWORK_VOLUME/ComfyUI"
