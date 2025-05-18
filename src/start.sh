@@ -39,7 +39,7 @@ rm -rf CivitAI_Downloader  # Clean up the cloned repo
 pip install huggingface_hub
 pip install onnxruntime-gpu
 
-if [ "$ENABLE_OPTIMIZATIONS" == "true" ]; then
+if [ "${ENABLE_OPTIMIZATIONS,,}" == "true" ]; then
 echo "Downloading SageAttention"
 git clone https://github.com/thu-ml/SageAttention.git
 cd SageAttention
@@ -47,7 +47,7 @@ python3 setup.py install
 cd /
 echo "Downloading Triton"
 pip install triton
-export change_preview_method="true"
+export CHANGE_PREVIEW_METHOD="true"
 fi
 
 # Change to the directory
@@ -66,8 +66,8 @@ download_model() {
     echo "Downloading $destination_file..."
 
     # First, download to a temporary directory
-    mkdir -p $NETWORK_VOLUME/tmp
-    local temp_dir="$NETWORK_VOLUME/tmp"
+    local temp_dir="$NETWORK_VOLUME/tmp/temp_model_downloads"
+    mkdir -p "$temp_dir"
 
     huggingface-cli download "$repo_id" "$file_path" --local-dir "$temp_dir" --resume-download
 
@@ -96,7 +96,7 @@ CLIP_VISION_DIR="$NETWORK_VOLUME/ComfyUI/models/clip_vision"
 VAE_DIR="$NETWORK_VOLUME/ComfyUI/models/vae"
 
 # Download quantized models
-if [ "$DOWNLOAD_QUANTIZED_MODEL" == "true" ]; then
+if [ "${DOWNLOAD_QUANTIZED_MODEL,,}" == "true" ]; then
   echo "Downloading quantized models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "Wan2_1-T2V-14B_fp8_e4m3fn.safetensors" \
@@ -110,7 +110,7 @@ if [ "$DOWNLOAD_QUANTIZED_MODEL" == "true" ]; then
 fi
 
 # Download 480p native models
-if [ "$DOWNLOAD_480P_NATIVE_MODELS" == "true" ]; then
+if [ "${DOWNLOAD_480P_NATIVE_MODELS,,}" == "true" ]; then
   echo "Downloading 480p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_480p_14B_bf16.safetensors" \
@@ -124,7 +124,7 @@ if [ "$DOWNLOAD_480P_NATIVE_MODELS" == "true" ]; then
 fi
 
 # Handle full download (with SDXL)
-if [ "$DOWNLOAD_WAN_FUN_AND_SDXL_HELPER" == "true" ]; then
+if [ "${DOWNLOAD_WAN_FUN_AND_SDXL_HELPER,,}" == "true" ]; then
   echo "Downloading Wan Fun 1.3B Model"
 
   download_model "$DIFFUSION_MODELS_DIR" "Wan2.1-Fun-Control1.3B.safetensors" \
@@ -143,7 +143,7 @@ if [ "$DOWNLOAD_WAN_FUN_AND_SDXL_HELPER" == "true" ]; then
   fi
 fi
 
-if [ "$DOWNLOAD_VACE" == "true" ]; then
+if [ "${DOWNLOAD_VACE,,}" == "true" ]; then
   echo "Downloading Wan 1.3B"
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_t2v_1.3B_fp16.safetensors" \
@@ -161,7 +161,7 @@ if [ "$DOWNLOAD_VACE" == "true" ]; then
 fi
 
 # Download 720p native models
-if [ "$DOWNLOAD_720P_NATIVE_MODELS" == "true" ]; then
+if [ "${DOWNLOAD_720P_NATIVE_MODELS,,}" == "true" ]; then
   echo "Downloading 720p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_720p_14B_bf16.safetensors" \
@@ -175,7 +175,7 @@ if [ "$DOWNLOAD_720P_NATIVE_MODELS" == "true" ]; then
 fi
 
 # Download 480p native models
-if [ "$DOWNLOAD_480P_DEBUG" == "true" ]; then
+if [ "${DOWNLOAD_480P_DEBUG,,}" == "true" ]; then
   echo "Downloading 480p native models..."
 
   download_model "$DIFFUSION_MODELS_DIR" "wan2.1_i2v_480p_14B_bf16.safetensors" \
@@ -289,7 +289,7 @@ for TARGET_DIR in "${!MODEL_CATEGORIES[@]}"; do
     done
 done
 
-if [ "$CHANGE_PREVIEW_METHOD" == "true" ]; then
+if [ "${CHANGE_PREVIEW_METHOD,,}" == "true" ]; then
     echo "Updating default preview method..."
     sed -i '/id: *'"'"'VHS.LatentPreview'"'"'/,/defaultValue:/s/defaultValue: false/defaultValue: true/' $NETWORK_VOLUME/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/web/js/VHS.core.js
     CONFIG_PATH="/ComfyUI/user/default/ComfyUI-Manager"
@@ -357,7 +357,7 @@ pip install --no-cache-dir -r $NETWORK_VOLUME/ComfyUI/custom_nodes/ComfyUI-KJNod
 
 # Start ComfyUI
 echo "Starting ComfyUI"
-if [ ! "$ENABLE_OPTIMIZATIONS" = "true" ]; then
+if [ ! "${ENABLE_OPTIMIZATIONS,,}" == "true" ]; then
     python3 "$NETWORK_VOLUME/ComfyUI/main.py" --listen
 else
     python3 "$NETWORK_VOLUME/ComfyUI/main.py" --listen --use-sage-attention
