@@ -46,5 +46,5 @@ RUN for repo in \
     done
 
 EXPOSE 8188
-CMD [ "python3", "/ComfyUI/main.py", "--listen" ]
-
+COPY bootstrap.sh /
+CMD ["/bootstrap.sh"]
